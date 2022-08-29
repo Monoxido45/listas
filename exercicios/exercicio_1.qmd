@@ -1,5 +1,6 @@
 ---
-title: "Exercícios 1 - Redes Complexas"
+title: "Lista 1 - Matemática das Redes Complexas"
+subtitle: "Redes Complexas para Ciência da Computação"
 author: "Luben Miguel, Rodrigo Lassance"
 format: 
   pdf:
@@ -7,6 +8,7 @@ format:
     code-line-numbers: true
     highlight-style: github
 editor: visual
+lang: pt
 ---
 
 ```{r echo = F}
@@ -19,11 +21,19 @@ knitr::opts_chunk$set(warning = FALSE, size = "scriptsize")
 library(igraph)
 library(tidyverse)
 library(Matrix)
+library(knitr)
 ```
 
 # Exercício 1
+Todas as redes utilizadas ao longo desta lista foram obtidas na página <https://networkrepository.com>. Os respectivos nomes atribuídos a cada uma das redes ao longo do texto dizem respeito às suas denominações originais encontradas no *site*. As redes selecionadas foram:
 
-Primeiramente, importamos as redes e checamos se são direcionadas pela simetria da matriz de adjacência:
+-   **ca-CSphd**: Rede de orientação alunos de PhD da ciência da computação, vértices representando cada indivíduo e arestas indicando se houve alguma relação de orientação entre os indivíduos;
+
+-   **rt-israel**: Rede de retweets na hashtag de política sobre Israel, vértices representando os usuários e arestas indicando caso algum dos usuários tenha feito retweet da postagem do outro;
+
+-   **inf-openflights**: Rede de transferência de aeroportos, vértices representando os aeroportos e arestas indicando se de um aeroporto é possível viajar para o outro.
+
+Contudo, antes de dar início às descrições sobre as redes, é necessário primeiro garantir que todas elas são direcionadas. Isso será feito através da avaliação de simetria da matriz de adjacência. Caso qualquer uma delas for simétrica, é sinal de que a rede não é direcionada.
 ```{r}
 # pre-processamento e importacao dos dados
 # lendo os dados de phd da computacao
@@ -56,19 +66,17 @@ airports_graph <- airports |>
 airports_adj <- airports_graph |>
   as_adj()
 
-# checando se eh direcionado
-isSymmetric(israel_adj)
-isSymmetric(airports_adj)
-isSymmetric(phd)
+# checando se sao simetricas
+c(isSymmetric(phd), isSymmetric(israel_adj), isSymmetric(airports_adj))
 ```
+Assim, podemos então concluir que as matrizes das três redes não apresentam simetria, portanto são todas direcionadas.
 
-Checada que são direcionadas, as redes que selecionamos foram:
+Agora, descreveremos brevemente as redes elencadas a partir das informações contidas nos dados, buscando também levantar possíveis problemas de pesquisa em que cada uma poderia ser usada.
 
--   Rede de orientação de PHD's da ciência da computação: 
-Retirada de <https://networkrepository.com/ca-CSphd.php>, a rede tem $1882$ vértices e $1740$ arestas, cada vértice representa um indivíduo e cada aresta representa quem esse indivíduo ja orientou. Essa rede modela relações de orientação dos estudantes de Doutorado em computação, assim, a partir desta, podemos traçar histórico de orientações, analisar área de estudo dos diversos orientadores através de possíveis informações de seus orientandos, ou de seu próprio orientador, identificação de comunidades de pesquisa da área da computação.
+-   **ca-CSphd**: a rede possui $1882$ vértices (indivíduos) e $1740$ arestas (relações de orientação). Algumas possíveis temáticas que essa rede poderia informar são: identificação do histórico de orientações (quem orientou quem ao longo do tempo), inferência acerca das áreas de estudo dos diversos orientadores com base nos projetos realizados por seus orientandos (ou mesmo do próprio orientador do indivíduo em análise), identificação de comunidades de pesquisa da área da Ciência da Computação.
 
--   Rede de retweets na hashtag de política sobre Israel:
-Retirada de <https://networkrepository.com/rt-israel.php>, a rede tem $3698$ vértices e $4175$ arestas, cada vértice representa um usuário e cada aresta representa um retweet sobre um tweet da hashtag específica. Como essa rede modela retweets de uma hashtag política, podemos identificar usuários de maior influência na hashtag, como por exemplo, contas institucionais, jornalistas ou simplesmente usuários com mais seguidores.
+-  **rt-israel.php**: a rede possui $3698$ vértices (usuários) e $4175$ arestas (retweets). Desse modo, poderíamos buscar identificar usuários com maior "influência" na hashtag (como contas institucionais, jornalistas ou mesmo usuários com um maior número de seguidores), assim como avaliar se o usuário pode ser um bot (caso sua taxa de retweets no tempo seja humanamente impossível, por exemplo).
+
 ```{r}
 #| output: false
 #| echo: false
@@ -79,20 +87,24 @@ gsize(airports_graph)
 gorder(airports_graph)
 ```
 
--   Rede de transferência de aeroportos
-Retirada de <https://networkrepository.com/inf-openflights.php>, a rede tem $2939$ vértices e $30501$ arestas cada vértice representa um aeroporto e cada aresta representa pelo menos uma rota de ida viável para cada outro aeroporto. Essa rede modela as diferentes rotas entre diferentes aeroportos por uma dada região de análise, o que nos permite identificar polos comerciais dessa região e estimar possíveis comunidades dentro dessa rede. 
+-   **inf-openflights**: a rede possui $2939$ vértices (aeroportos) e $30501$ arestas (rotas). Assim, ela poderia ser utilizada para identificar pólos comerciais da região como um todo (vértices que recebem maior número de voos) e estimar possíveis comunidades dentro dessa rede.
 
 # Exercício 2
-As matrizes de adjacências foram calculadas no exercício 1. Vamos checar se são sem pesos:
+
+As matrizes de adjacências foram calculadas no exercício 1, visto que isso foi necessário para avaliar o número de arestas. Agora, vamos checar se alguma delas apresenta pesos:
 ```{r}
-# aeroportos
-all(airports_adj == 0 | airports_adj == 1)
-# israel
-all(israel_adj == 0 | israel_adj == 1)
 # phd
 all(phd == 0 | phd == 1)
+# israel
+all(israel_adj == 0 | israel_adj == 1)
+# aeroportos
+all(airports_adj == 0 | airports_adj == 1)
+
 ```
-Sendo sem peso, vamos agora transforma-las em matrizes simétrica, removendo a informação da direção. Ou seja, vamos transformar $A_{ji}$ em $1$ se $A_{ij} = 1$ e vice e versa.
+Com isso, concluímos que nenhuma delas tem peso, visto que as entradas da matriz se resumem em 0's e 1's.
+
+A seguir, devemos transformar todas as três redes em não-direcionadas. Para que isso seja possível, faz-se necessário identificar todas as entradas da matriz que são iguais a 1 e, caso o elemento transposto seja 0, igualá-lo a 1 também. Por exemplo, se $A_{ji} = 1$, precisamos garantir que $A_{ij} = 1$ também.
+
 ```{r}
 #| warning: false
 # criando novamente as matrizes de adjancecias
@@ -114,10 +126,6 @@ transforma_adj <- function(mat_adj){
   return(as(new_mat, "sparseMatrix"))
 }
 
-# aeroportos simetrica
-airports_sym <- transforma_adj(airports_adj)
-isSymmetric(airports_sym)
-
 # phd simetrica
 phd_sym <- transforma_adj(phd)
 isSymmetric(phd_sym)
@@ -126,17 +134,23 @@ isSymmetric(phd_sym)
 israel_sym <- transforma_adj(israel_adj)
 isSymmetric(israel_sym)
 
+# aeroportos simetrica
+airports_sym <- transforma_adj(airports_adj)
+isSymmetric(airports_sym)
+
 # lista das matrizes transformadas
-mat_list <- list("aeroportos" = airports_sym,
-                 "phd" = phd_sym,
-                 "israel" = israel_sym)
+mat_list <- list("phd" = phd_sym,
+                 "israel" = israel_sym,
+                 "aeroportos" = airports_sym)
 
 # lista das matrizes originais
-original_list <-  list("aeroportos" = airports_adj,
-                 "phd" = phd,
-                 "israel" = israel_adj)
+original_list <-  list("phd" = phd,
+                       "israel" = israel_adj,
+                       "aeroportos" = airports_adj)
 ```
-Transformadas em matrizes simétricas, computamos agora o número de elementos positivos de $X = A^3$e $Y = A^4$ para as redes selecionadas e o exibimos na seguinte tabela:
+
+Garantimos assim que as novas matrizes são simétricas, portanto não direcionadas. Feito isso, computamos agora o número de elementos positivos de $X = A^3$e $Y = A^4$ para as redes selecionadas e o exibimos na seguinte tabela:
+
 ```{r}
 calc_X <- function(mat){
   ((mat %*% mat %*% mat) > 0) |>
@@ -172,7 +186,8 @@ tibble(rede = names(mat_list),
 ```
 
 # Exercício 3
-Para computar a matriz de cocitação e acoplamento bibliografico e retornar os vértices de maior in-degree e out-degree, teremos:
+
+Consideraremos que, por força do vértice, o enunciado está se referindo ao valor da diagonal das matrizes de cocitação e acoplamento bibliográfico. Assim, como isso se refere ao in-degree e ao out-degree, teremos:
 ```{r}
 in_degree <- function(mat){
   (mat %*% t(mat)) |> 
@@ -200,19 +215,21 @@ max_acopbib <- original_list |>
 tibble(rede = names(original_list),
         X = max_cocit,
         Y = max_acopbib) |>
-  knitr::kable(format = "latex",
-               booktabs = TRUE,
-               escape = FALSE,
-               col.names = c("Rede",
-                             "Maior força (cocitação)",
-                             "Maior força (acoplamento bibliográfico)"),
-               caption = "Vértices de maior força na cocitação e acoplamento bibliográfico para cada rede") |>
+kable(format = "latex",
+      booktabs = TRUE,
+      escape = FALSE,
+      col.names = c("Rede",
+                      "Maior força (cocitação)",
+                      "Maior força (acoplamento bibliográfico)"),
+      caption = "Vértices de maior força na cocitação e acoplamento bibliográfico") |>
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 ```
 
 # Exercício 4
-Para testar se a matriz é aciclica, basta checar se a soma dos módulos dos autovalores $\sum_{i = 1}^{V} |\lambda_{i}|$ é $0$, sendo $V$ o número de vértices da rede. Assim, usando a função $\textit{eigen}$ do R, retornamos a diagonal da matriz de autovalores $\Lambda$ de $A$ para a rede de phd e obtemos:
+
+Entre as três redes elencadas, aquela que de julga ser acíclica é a de orientações de PhD. Assim, para verificar que isso de fato é o caso, iremos avaliar a soma dos módulos dos autovalores da matriz de adjacência. Caso $\sum_{i = 1}^{V} |\lambda_{i}| = 0$, sendo $V$ o número de vértices da rede, podemos então garantir que é acíclica. Assim, usando a função $\textit{eigen}$ do R, retornamos a diagonal da matriz de autovalores $\Lambda$ de $A$ para a rede de phd e obtemos:
+
 ```{r}
 # testando se eh aciclico pela soma do modulo dos autovalores
 phd |>
@@ -221,12 +238,13 @@ phd |>
   abs() |>
   sum()
 ```
-Ou seja, como $\sum_{i = 1}^{V} |\lambda_{i}| = 0$, não existem ciclios na rede de phd's de ciência da computação.
+
+Ou seja, como $\sum_{i = 1}^{V} |\lambda_{i}| = 0$, não existem ciclos na rede de PhD's de Ciência da Computação.
 
 # Exercício 5
-A reciprocidade é definida pela seguinte fórmula (<https://en.wikipedia.org/wiki/Reciprocity_(network_science)>):
-$$\rho = \frac{\sum_{i \neq j} (A_{ij} - \bar{A}) (A_{ji} - \bar{A})}{\sum_{i \neq j}(A_{ij} - \bar{A})^2} \; ,$$
-tal que $\bar{A} = \sum_{i \neq j} \frac{A_{ij}}{N(N - 1)}$ é a proporção de conexões diretas entre os diferentes vértices do grafo. Assim, para computar tal medida, fazemos:
+
+A reciprocidade é definida pela seguinte fórmula (<https://en.wikipedia.org/wiki/Reciprocity_(network_science)>): $$\rho = \frac{\sum_{i \neq j} (A_{ij} - \bar{A}) (A_{ji} - \bar{A})}{\sum_{i \neq j}(A_{ij} - \bar{A})^2} \; ,$$ tal que $\bar{A} = \sum_{i \neq j} \frac{A_{ij}}{N(N - 1)}$ é a proporção de conexões diretas entre os diferentes vértices do grafo. Assim, para computar tal medida, fazemos:
+
 ```{r}
 #| warning: false
 compute_rho <- function(mat){
@@ -238,10 +256,8 @@ compute_rho <- function(mat){
 }
 
 # computando rho para as duas matrizes ciclicas
-compute_rho(airports_adj)
 compute_rho(israel_adj)
+compute_rho(airports_adj)
 ```
 
-
-
-
+Podemos perceber que a medida de reciprocidade fornece resultados opostos para as redes. Enquanto que na rede de retweets a reciprocidade é baixa, na de aeroportos é consideravelmente alta. Isso faz sentido dado que no Twitter é raro que um usuário retweete o conteúdo de outra pessoa que o retweetou, enquanto que é bastante comum para aeroportos que, quando um leva para o outro, a volta também costuma ser possível.
