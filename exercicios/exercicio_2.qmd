@@ -1,5 +1,6 @@
 ---
 title: "Lista 2 - Medidas de Centralidade"
+subtitle: "Redes Complexas para Ciência da Computação"
 author: "Luben Miguel, Rodrigo Lassance"
 format: 
   pdf:

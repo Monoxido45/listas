@@ -187,8 +187,17 @@ tibble(rede = names(mat_list),
 
 # Exercício 3
 
-Consideraremos que, por força do vértice, o enunciado está se referindo ao valor da diagonal das matrizes de cocitação e acoplamento bibliográfico. Assim, como isso se refere ao in-degree e ao out-degree, teremos:
+Primeiramente, consideramos que, por força do vértice, o enunciado está se referindo ao valor da diagonal das matrizes de cocitação e acoplamento bibliográfico. Assim, como isso se refere ao in-degree e ao out-degree, teremos:
 ```{r}
+return_cocit <- function(mat){
+  mat %*% t(mat)
+}
+
+return_acopbib <- function(mat){
+  t(mat) %*% mat
+}
+
+
 in_degree <- function(mat){
   (mat %*% t(mat)) |> 
     diag()
@@ -221,10 +230,46 @@ kable(format = "latex",
       col.names = c("Rede",
                       "Maior força (cocitação)",
                       "Maior força (acoplamento bibliográfico)"),
-      caption = "Vértices de maior força na cocitação e acoplamento bibliográfico") |>
+      caption = "Vértices de maior força na cocitação e acoplamento bibliográfico (1ª interpretação)") |>
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 ```
+Já, entendendo força do vértice como a soma dos pesos de cada vizinho do vértice de interesse para as matrizes de cocitação e acoplamento bibliográfico, obtemos os seguintes vértices:
+```{r}
+max_forca_cocit <-  original_list |> 
+  map(function(x){
+  mat = return_cocit(x)
+  diag(mat) = 0
+  mat |>
+  rowSums() |>
+    which.max()
+})
+
+
+max_forca_acopbib <- original_list |>
+  map(function(x){
+  mat = return_acopbib(x)
+  diag(mat) = 0
+  mat |>
+  rowSums() |>
+    which.max()
+})
+
+tibble(rede = names(original_list),
+        X = max_forca_cocit,
+        Y = max_forca_acopbib) |>
+kable(format = "latex",
+      booktabs = TRUE,
+      escape = FALSE,
+      col.names = c("Rede",
+                      "Maior força (cocitação)",
+                      "Maior força (acoplamento bibliográfico)"),
+      caption = "Vértices de maior força na cocitação e acoplamento bibliográfico (2ª interpretação)") |>
+  kableExtra::kable_styling(full_width = FALSE,
+                            latex_options = "hold_position")
+```
+
+
 
 # Exercício 4
 
