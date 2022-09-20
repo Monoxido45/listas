@@ -11,7 +11,6 @@ editor: source
 lang: pt
 ---
 
-
 ```{r echo = F}
 knitr::opts_chunk$set(warning = FALSE, size = "scriptsize")
 ```
@@ -26,8 +25,8 @@ library(knitr)
 library(scales)
 ```
 
-# Exercício 1
-Primeiramente, importamos as seguintes redes:
+Para os exercícios 1-3, precisamos importar 3 redes direcionadas e 1 não-direcionada. Entre as redes direcionadas, foram escolhidas a de retweets sobre Israel e a de destinos de aeroportos (rt-israel e inf-openflights, já previamente descritos na lista de exercícios anterior), além de uma rede de direcionamentos de páginas web (wep-EPA). Já a rede não-direcionada foi a de interações entre ratos-do-mato (mammalia-voles-bhp-trapping, com interação sendo definida como existente caso dois ratos tenham sido pegos em uma mesma armadilha pelo menos uma vez). Visto que essa última rede apresenta pesos nas arestas, tais pesos foram inicialmente igualados a 1.
+
 ```{r}
 #| warning: false
 # pre-processamento e importacao dos dados
@@ -68,7 +67,8 @@ web_adj <- web_graph |>
 
 # nao direcionado
 # dados dos ratos sem processamento
-ratos_dados <- read.table("dados/mammalia-voles-bhp-trapping.edges", sep=" ", header = FALSE)
+ratos_dados <- read.table("dados/mammalia-voles-bhp-trapping.edges",
+                          sep=" ", header = FALSE)
 # rede de rato do mato sem pesos
 ratos_rede <-  ratos_dados |>
   select(-c(3, 4)) |>
@@ -78,7 +78,7 @@ ratos_rede <-  ratos_dados |>
   as.matrix()
 
 # por causa do time stamp, algumas conexoes sao repetidas nos dados
-# corrigindo isso na matriz de adjacencia
+# corrigindo isso na matriz de adjacencias
 ratos_adj <- ratos_rede |> 
   graph_from_edgelist(directed=FALSE) |>
   as_adj()
@@ -89,21 +89,15 @@ ratos_adj <- (ratos_adj >= 1) + 0
 ratos_graph <- ratos_adj |> graph_from_adjacency_matrix(mode = "undirected")
 
 # checando se sao simetricas ou nao simetricas
-c(isSymmetric(web_adj), isSymmetric(israel_adj), isSymmetric(airports_adj), isSymmetric(ratos_adj))
+c(isSymmetric(web_adj), isSymmetric(israel_adj),
+  isSymmetric(airports_adj), isSymmetric(ratos_adj))
 ```
-Para calcular e plotar os graus $\text{P}(k)$ e graus de entrada e saída $\text{P}(k_{in})$, $\text{P}(k_{out})$ elaboramos a seguinte função:
-```{r}
-# escala em loglog2
-loglog_trans <- trans_new(
-  name = 'log-log',
-  transform = function(x) log(log(x)),
-  inverse = function(x) exp(exp(x)),
-  breaks = extended_breaks(),
-  minor_breaks = regular_minor_breaks(),
-  format = format_format(),
-  domain = c(1, Inf)
-)
 
+# Exercício 1
+
+No enunciado, foi pedido para se gerar a distribuição de probabilidade dos graus em escala log-log. Como o eixo Y trata de probabilidades, percebeu-se que tomar a sua escala no logaritmo gerava resultados pouco intuitivos. Desse modo, primando pela facilitação da visualização das informações, optou-se por plotar as frequências absolutas no lugar das relativas. Assim, para calcular e plotar os graus $\text{P}(k)$ e graus de entrada e saída $\text{P}(k_{in})$, $\text{P}(k_{out})$ elaboramos a seguinte função:
+
+```{r}
 plot_degree <- function(igraph_obj, rede_label, overall = TRUE){
   directed <- is_directed(igraph_obj)
   
@@ -115,14 +109,14 @@ plot_degree <- function(igraph_obj, rede_label, overall = TRUE){
   
   p1 <- dados_grau |>
   ggplot(aes(x = grau))+
-  geom_histogram(aes(y = ..density..),
+  geom_histogram(
   colour = "black", fill = "white",
   alpha = 0.5)+
-  geom_density(colour = "dodgerblue3", size = 1)+
   theme_minimal()+
   scale_x_continuous(trans= "log2") +
-  labs(x = "Grau",
-  y = "Densidade")
+  scale_y_continuous(trans= "log2") +
+  labs(x = expression("Grau"),
+  y = expression("Frequência"))
   show(p1)
   }else{
     if(!overall){
@@ -142,15 +136,15 @@ plot_degree <- function(igraph_obj, rede_label, overall = TRUE){
   
   p1 <- dados_grau |>
   ggplot(aes(x = grau))+
-  geom_histogram(aes(y = ..density..),
+  geom_histogram(
   colour = "black", fill = "white",
   alpha = 0.5)+
-  geom_density(colour = "dodgerblue3", size = 1)+
   facet_wrap(~mode, nrow = 2)+
   theme_minimal()+
-  scale_x_continuous(trans="log2")+
-  labs(x = "Grau",
-  y = "Densidade",
+  scale_x_continuous(trans= "log2") +
+  scale_y_continuous(trans= "log2") +
+  labs(x = expression("Grau"),
+  y = expression("Frequência"),
   title = rede_label)
   show(p1)
     }else{
@@ -161,14 +155,14 @@ plot_degree <- function(igraph_obj, rede_label, overall = TRUE){
   
   p1 <- dados_grau |>
   ggplot(aes(x = grau))+
-  geom_histogram(aes(y = ..density..),
+  geom_histogram(
   colour = "black", fill = "white",
   alpha = 0.5)+
-  geom_density(colour = "dodgerblue3", size = 1)+
   theme_minimal()+
-  scale_x_continuous(trans="log2") +
-  labs(x = "Grau",
-  y = "Densidade",
+  scale_x_continuous(trans= "log2") +
+  scale_y_continuous(trans= "log2") +
+  labs(x = expression("Grau"),
+  y = expression("Frequência"),
   title = rede_label)
   show(p1)
     }
@@ -178,56 +172,72 @@ plot_degree <- function(igraph_obj, rede_label, overall = TRUE){
 ```
 
 Plotamos o grau para todas as redes a seguir:
-*   Rede de páginas web:
+
+-   Rede de páginas web:
+
 ```{r}
 #| warning: false
 grau_web <- plot_degree(web_graph, 
             rede_label = "Distribuição do grau da rede de paginas web")
 ```
-*   Rede de retweets sobre Israel
+
+-   Rede de retweets sobre Israel
+
 ```{r}
 #| warning: false
-grau_israel <- plot_degree(israel_graph, 
-            rede_label = "Distribuição do grau da rede de Israel")
+grau_israel <- plot_degree(israel_graph,
+                           rede_label = "Distribuição do grau da rede de Israel")
 ```
-*   Rede de aeroportos
+
+-   Rede de aeroportos
+
 ```{r}
 #| warning: false
 grau_airports <- plot_degree(airports_graph, 
                              rede_label = "Distribuição do grau da rede de aeroportos")
 ```
 
-*   Rede de ratos
+-   Rede de ratos
+
 ```{r}
 #| warning: false
-ratos_grau <- plot_degree(ratos_graph, rede_label = "Distribuição do grau da rede de ratos")
+ratos_grau <- plot_degree(ratos_graph,
+                          rede_label = "Distribuição do grau da rede de ratos")
 ```
 
 Agora, mostramos a distribuição dos graus de entrada e de saída para as redes direcionadas:
-*   Rede de páginas web:
+
+-   Rede de páginas web:
+
 ```{r}
 #| warning: false
-in_out_grau_web <- plot_degree(web_graph, 
-            rede_label = "Distribuição dos graus de entrada e saída da rede de paginas web",
-            overall = FALSE)
+in_out_grau_web <- plot_degree(web_graph,
+                               rede_label = "In/out degree da rede de paginas web",
+                               overall = FALSE)
 ```
-*   Rede de retweets sobre Israel
+
+-   Rede de retweets sobre Israel
+
 ```{r}
 #| warning: false
-in_out_grau_israel <- plot_degree(israel_graph, 
-            rede_label = "Distribuição dos graus de entrada e saída da rede de Israel",
-            overall = FALSE)
+in_out_grau_israel <- plot_degree(israel_graph,
+                                  rede_label = "In/out degree da rede de Israel",
+                                  overall = FALSE)
 ```
-*   Rede de aeroportos
+
+-   Rede de aeroportos
+
 ```{r}
 #| warning: false
-in_out_grau_airports <- plot_degree(airports_graph, 
-                             rede_label = "Distribuição dos graus de entrada e saída da rede de aeroportos",
-                             overall = FALSE)
+in_out_grau_airports <- plot_degree(airports_graph,
+                                    rede_label = "In/out degree da rede de aeroportos",
+                                    overall = FALSE)
 ```
+
 # Exercício 2
 
 A seguir, calculamos a centralidade de autovetor para cada rede:
+
 ```{r}
 get_eigen_centrality <- function(igraph_obj){
   if(is_directed(igraph_obj)){
@@ -251,6 +261,7 @@ ratos_eigen <- ratos_graph |> get_eigen_centrality()
 ```
 
 Com essa centralidade calculada para todas as redes, obtemos a seguir a tabela com as correlações de pearson entre a medida de centralidade de autovetor e o grau:
+
 ```{r}
 eigen_list <- list("israel" = israel_eigen,
                    "web" = web_eigen,
@@ -271,7 +282,7 @@ map2_dfr(eigen_list, grau_list, function(x, y){
                escape = FALSE,
                col.names = c("Rede",
                              "Valor da correlação"),
-               caption = "Correlação de pearson entre centralidade de grau e autovetor para cada rede") |>
+               caption = "Correlação de Pearson entre centralidade de grau e autovetor") |>
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 
@@ -296,10 +307,13 @@ eigen_grau_df |>
        y = "Centralidade de autovetor",
        title = "Gráfico de dispersão entre o grau e autovetor para cada rede")
 ```
-Vemos principalmente nos scatterplots das redes de ratos, paginas web e retweets de israel muitos valores com centralidade de grau relativamente grande porém uma centralidade de autovetor igual a zero, tendo ambas centralidades uma correlação de pearson baixa para essas redes.
+
+Vemos, principalmente nos scatterplots das redes de ratos, paginas web e retweets de israel muitos valores com centralidade de grau relativamente grande porém uma centralidade de autovetor igual a zero, tendo ambas centralidades uma correlação de pearson baixa para essas redes. Isso se dá pelo fato de a correlação de Pearson ser uma medida que avalia a relação linear entre duas variáveis. Para os casos das redes de israel e web, há evidências de uma relação fortemente não-linear entre elas.
 
 # Exercício 3
-Vemos pelo Exercício 2 que para valores elevados de grau se observam valores nulos de centralidade de autovalor. Verificaremos agora seguir quantos vértices tem centralidade de autovetor nula e graus de entrada não nulos para cada rede:
+
+Vemos pelo Exercício 2 que para valores elevados de grau se observam valores nulos de centralidade de autovalor. Verificaremos a seguir quantos vértices têm centralidade de autovetor nula e graus de entrada não nulos para cada rede. De modo a evitar erros de aproximação, verificamos quais valores do autovalor são inferiores ou iguais ao erro da máquina (`.Machine$double.eps`).
+
 ```{r}
 in_grau_airports <- in_out_grau_airports |> filter(mode == "In-degree") |> pull(grau)
 in_grau_israel <- in_out_grau_israel |> filter(mode == "In-degree") |> pull(grau)
@@ -314,22 +328,26 @@ eigen_grau_df <- data.frame(name_rede = c(rep("israel", length(israel_eigen)),
                                 in_grau_web))
 
 # funcao para detectar se existe pelo menos um vertice com centralidade nula
-detecta_nula <- function(eigen_grau_df, rede){
+detecta_nula <- function(eigen_grau_df, rede
+                         ){
   eigen_grau_df |>
     filter(name_rede == rede) |>
-    filter(eigen == 0 & grau > 0) |>
+    filter(eigen <= .Machine$double.eps & grau >= 1) |>
     nrow()
 }
-
 c(detecta_nula(eigen_grau_df,"israel"),
 detecta_nula(eigen_grau_df,"airport"),
 detecta_nula(eigen_grau_df,"web"))
 ```
+
 Ou seja, vemos que todas as redes direcionadas tem pelo menos um vértice com centralidade de autovetor nula mesmo tendo uma ou mais conexões de entrada.
 
 # Exercício 4
+
 A rede de interação entre ratos do mato possui um peso ignorado que nos diz quantas vezes ambos os ratos conectados cairam na mesma armadilha em alguma timestamp específico. Assim, somaremos todos os pesos associados a cada timestamp e as relações de ida e volta:
+
 ```{r}
+#| warning: false
 ratos_weighted_graph <- ratos_dados |>
   group_by(V1, V2) |>
   select(-4) |>
@@ -337,7 +355,9 @@ ratos_weighted_graph <- ratos_dados |>
   rename(weight = "V3") |>
   graph_from_data_frame(directed = FALSE)
 ```
+
 Para obter a acessibilidade, podemos acessar o peso no grafo e calcular a entropia nos pesos a partir da seguinte função:
+
 ```{r}
 accessibility <- function(igraph_obj){
   vtx_list <- V(igraph_obj)
@@ -351,11 +371,15 @@ accessibility <- function(igraph_obj){
   return(access)
 }
 ```
+
 Tendo o vetor de acessibilidade:
+
 ```{r}
 acesso_ratos <- accessibility(ratos_weighted_graph)
 ```
+
 Desta maneira, podemos obter o gráfico de dispersão entre grau e acessibilidade como a seguir:
+
 ```{r}
 grau_acess_data_frame <- data.frame(grau = degree(ratos_weighted_graph),
                                     acessib = acesso_ratos) |>
@@ -369,10 +393,13 @@ grau_acess_data_frame |>
        y = "Acessibilidade",
        title = "Gráfico de dispersão entre acessibilidade e grau")
 ```
+
 Vemos uma tendência linear nesse gŕafico, com a acessibilidade tendo em geral valores menores que o grau. Há casos porém, que vemos uma acessibilidade consideravelmente menor que o grau, tendo por exemplo acessibilidades menor que 10 em casos de grau maior que 10.
 
 # Exercício 5
+
 Podemos ver os vértices que tem acessibilidade muito menor que 10 para casos de graus maiores que 10, como os vértices com acessibilidade menor que 8 e grau maior que 10:
+
 ```{r}
 grau_acess_data_frame |>
   filter(grau > 10 & acessib < 8) |>
@@ -387,18 +414,24 @@ grau_acess_data_frame |>
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 ```
+
 Ou seja, vemos alguns exemplos de vértice que a acessibilidade é bem menor que o grau, destacando principalmente o vértice 829, com acessibilidade 4.630 e grau 11.
 
 # Exercício 6
+
 Tomando novamente a rede de interação entre ratos e armadilhas sem peso, podemos obter a centralidade de Katz, fixando $\alpha < \frac{1}{k_1}$. Nesse caso, o maior autovalor $k_1$ é dado por:
+
 ```{r}
 k_1 <- eigen(ratos_adj) |> pluck("values") |> max()
 k_1
 ```
+
 Ou seja, devemos tomar $\alpha$ menor que:
+
 ```{r}
 1/k_1
 ```
+
 Assim, tomando $\alpha = 0.05$, obtemos a centralidade de Katz através da função do pacote \textit{centiserve}:
 
 ```{r}
@@ -428,5 +461,3 @@ grau_katz_data_frame |>
 ```
 
 Ou seja, a centralidade de Katz tem uma relação mais positiva que o grau do que a centralidade de autovetor comum.
-
-
