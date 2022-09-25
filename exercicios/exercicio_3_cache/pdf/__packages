@@ -1,0 +1,13 @@
+igraph
+tidyverse
+ggplot2
+tibble
+tidyr
+readr
+purrr
+dplyr
+stringr
+forcats
+Matrix
+knitr
+scales

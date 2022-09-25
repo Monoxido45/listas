@@ -1,0 +1,299 @@
+---
+title: "Lista 3 - Similaridade de Redes Complexas"
+subtitle: "Redes Complexas para Ciência da Computação"
+author: "Luben Miguel, Rodrigo Lassance"
+format: 
+  pdf:
+    documentclass: scrartcl
+    code-line-numbers: true
+    highlight-style: github
+editor: source
+lang: pt
+---
+
+```{r echo = F}
+knitr::opts_chunk$set(warning = FALSE, echo = FALSE, size = "scriptsize")
+```
+
+```{r}
+#| warning: false
+# pacotes sendo usados
+library(igraph)
+library(tidyverse)
+library(Matrix)
+library(knitr)
+library(scales)
+```
+
+```{r}
+#| warning: false
+# duas redes nao direcionadas
+# dados dos ratos sem processamento
+ratos_dados <- read.table("dados/mammalia-voles-bhp-trapping.edges",
+                          sep=" ", header = FALSE)
+
+# rede de rato do mato sem pesos
+ratos_rede <-  ratos_dados |>
+  select(-c(3, 4)) |>
+  group_by(V1, V2) |>
+  summarise(n  = n()) |>
+  select(-3) |>
+  as.matrix()
+
+# por causa do time stamp, algumas conexoes sao repetidas nos dados
+# corrigindo isso na matriz de adjacencias
+ratos_adj <- ratos_rede |> 
+  graph_from_edgelist(directed=FALSE) |>
+  as_adj()
+
+ratos_adj <- (ratos_adj >= 1) + 0
+
+# corrigido isso 
+ratos_graph <- ratos_adj |> graph_from_adjacency_matrix(mode = "undirected")
+
+# rede de mensagens pelo facebook
+fb_messages <- Matrix::readMM("dados/ia-fb-messages.mtx")
+
+# checando se tem auto-loop
+fb_graph <- fb_messages |> graph_from_adjacency_matrix(mode = "undirected")
+```
+
+
+# Exercício 1
+
+Considerando a medida de similaridade obtida a partir da distância euclidiana (similaridade dice), cuja fórmula é $S_{ij} = 2 \cdot \frac{n_{ij}}{(k_i + k_j)}$ para os vértices $i$ e $j$, obtemos a seguir o histograma das similaridades considerando todos os pares de vértices para as duas redes de interesse:
+-   Rede de ratos
+```{r}
+#\ warning: false
+# similaridade entre os pares de vértices para rede de ratos
+sim_dice_ratos <- ratos_graph |> similarity.dice(mode = "all")
+p1_dice <- data.frame(x = c(sim_dice_ratos[lower.tri(sim_dice_ratos)])) |>
+  ggplot(aes(x = x))+
+  geom_histogram(
+  colour = "black", fill = "white", bins = 20,
+  alpha = 0.5)+
+  theme_minimal()+
+  scale_y_continuous(trans= "log2") +
+  labs(x = expression("Similaridade"),
+  y = expression("Frequência (escala log2)"),
+  title = "Similaridade dice (ratos)")
+p1_dice
+```
+-   Rede de mensagens do facebook
+```{r}
+#\ warning: false
+# similaridade entre os pares de vértices para rede de ratos
+sim_dice_fb <- fb_graph |> similarity.dice(mode = "all")
+
+p2_dice <- data.frame(x = c(sim_dice_fb[lower.tri(sim_dice_fb)])) |>
+  ggplot(aes(x = x))+
+  geom_histogram(
+  colour = "black", fill = "white", bins = 20,
+  alpha = 0.5)+
+  theme_minimal()+
+  scale_y_continuous(trans= "log2") +
+  labs(x = expression("Similaridade"),
+  y = expression("Frequência (escala log2)"),
+  title = "Similaridade dice (Facebook)")
+
+p2_dice
+```
+# Exercício 2
+A seguir obtemos o número de caminhos de comprimento 3, 4 e 5 para cada par de vértice $(i, j)$ para cada rede de interesse:
+-   Rede de ratos
+```{r}
+plot_caminhos <- function(adj, sim_mat, title){
+  # coercing to dgCmatrix
+  adj <- adj*1
+  # calculando caminhos
+  similaridade <- sim_mat
+  caminhos_3 <- adj %*% adj %*% adj
+  caminhos_4 <- adj %*% adj %*% adj %*% adj
+  caminhos_5 <- adj %*% adj %*% adj %*% adj %*% adj
+  # agrupando em uma lista
+  p1 <- list("Similaridade dice" = similaridade,
+    "Comprimento = 3" = caminhos_3,
+             "Comprimento = 4" = caminhos_4,
+             "Comprimento = 5" = caminhos_5) |>
+    map_dfr(function(x){
+      c(x[lower.tri(x)])
+    }) |>
+    pivot_longer(1:4, names_to = "caminhos", values_to = "valores") |>
+    ggplot(aes(x = valores))+
+     geom_histogram(
+  colour = "black", fill = "white", bins = 20,
+  alpha = 0.5)+
+  facet_wrap(~caminhos, nrow = 2, ncol = 2, scales = "free_x")+
+  theme_bw()+
+  scale_y_continuous(trans= "log2") +
+  labs(x = "Número de caminhos",
+  y = expression("Frequência (escala log2)"),
+  title = title)
+  
+  show(p1)
+}
+```
+```{r}
+#\ warning: false
+plot_caminhos(ratos_adj, sim_dice_ratos, 
+              title = "Distribuição do número de caminhos para a rede de ratos")
+```
+-   Rede de mensagens no Facebook
+
+```{r}
+#\ warning: false
+plot_caminhos(fb_messages, sim_dice_fb, 
+              title = "Distribuição do número de caminhos para a rede de mensagens no Facebook")
+```
+
+Vemos que tanto para a rede de ratos quanto para a rede de mensagens a distribuição do número de caminhos é decrescente e suave para todos os comprimentos tomados sendo muito parecidas à distribuição da similaridade, tendo apenas certas diferenças na cauda. Isso pode estar relacionado ao fato de que, dois vértices muito similares tendem a ter um número maior de vizinhos compartilhados e por consequência, tem um número maior de possíveis caminhos a serem tomados nos diversos comprimentos. Por outro lado, para vértices não muito similares, o número de caminhos não será tão grande quanto para vértices mais similares pelo fato de terem vizinhos mais distantes e/ou poucos vizinhos compartilhados. Assim, é esperado que ocorra certo espelhamento da distribuição do número de caminhos de diferentes comprimentos na distribuição de similaridade entre vértices. Porém, nota-se como principal diferença entre as distribuições dos caminhos e da similaridade o decrescimento mais rapido do número de caminhos em comparação a um decrescimento mais lento da similaridade.
+
+# Exercício 3
+Para o calcular uma medida de similaridade regular, consideraremos nossa medida $\boldsymbol{\sigma} = \sum_{m = 1}^{\infty} (\alpha A)^m$. Para tal, tomaremos $\alpha < \frac{1}{\lambda_1}$ sendo $\lambda_1$ o maior autovalor de $A$. Os maiores autovalores para as redes de ratos e do facebook são:
+```{r}
+lambda_ratos <- eigen(ratos_adj) |>
+  pluck("values") |>
+  max()
+
+lambda_fb <- eigen(fb_messages + 0) |>
+  pluck("values") |>
+  max()
+
+data.frame("Rede" = c("Ratos", "Facebook"),
+           "Limiares" = round(c(1/lambda_ratos, 1/lambda_fb), 4)) |>
+  knitr::kable(format = "latex",
+               booktabs = TRUE,
+               escape = FALSE,
+               caption = "Limiares para ambas redes") |>
+  kableExtra::kable_styling(full_width = FALSE,
+                            latex_options = "hold_position")
+```
+Podemos tomar assim $\alpha_{ratos} = 0.07$ e $\alpha_{fb} = 0.035$ para cada rede e computar a matriz $\boldsymbol{\sigma}$ iterativamente. Tomamos como critério de convergência $\max{|\sigma^{(n)} - \sigma^{(n - 1)}|} \leq \varepsilon$, fixando $\varepsilon = 10^{-6}$. 
+```{r}
+regular_simil <- function(adj, alpha = 0.03, eps = 0.01){
+  I <- diag(1, nrow = nrow(adj), ncol = ncol(adj))
+  sigma_past <- matrix(0, nrow(adj), ncol(adj))
+  sigma <- I
+  while(max(abs(sigma - sigma_past)) >= eps){
+    sigma_past <- sigma
+    sigma <- alpha*(adj %*% sigma) + I
+  }
+  return(sigma)
+}
+
+# similaridade para rede de ratos
+sigma_ratos <- regular_simil(ratos_adj, alpha = 0.07, eps = 10^(-6))
+
+# similaridade para rede de facebook
+sigma_fb <- regular_simil(fb_messages + 0, alpha = 0.035, eps = 10^(-6))
+```
+
+```{r}
+#\ warning: false
+p1 <- data.frame(x = c(sigma_ratos[lower.tri(sigma_ratos)])) |>
+  ggplot(aes(x = x))+
+  geom_histogram(
+  colour = "black", fill = "white", bins = 20,
+  alpha = 0.5)+
+  theme_minimal()+
+  scale_y_continuous(trans= "log2") +
+  labs(x = expression("Similaridade"),
+  y = expression("Frequência (escala log2)"),
+  title = "Similaridade regular (ratos)")
+
+p2 <- data.frame(x = c(sigma_fb[lower.tri(sigma_fb)])) |>
+  ggplot(aes(x = x))+
+  geom_histogram(
+  colour = "black", fill = "white", bins = 20,
+  alpha = 0.5)+
+  theme_minimal()+
+  scale_y_continuous(trans= "log2") +
+  labs(x = expression("Similaridade"),
+  y = expression("Frequência (escala log2)"),
+  title = "Similaridade regular (Facebook)")
+```
+```{r fig.align='center', fig.width=10, fig.height=6}
+#\ warning: false
+ggpubr::ggarrange(p1, p1_dice, p2, p2_dice, nrow = 2, ncol = 2, 
+                  common.legend = TRUE)
+```
+
+Notamos pelo gráfico, para a rede de ratos, que a distribuição da similaridade regular decresce mais rapidamente do que a regularidade estrutural. Ou seja, mesmo em casos que ambos vértices de interesse compartilham vizinhos entre si, os vizinhos de um dos vértices tendem a ser menos similares ao outro. O mesmo argumento pode ser aplicado para a rede de mensagens do Facebook, visto que novamente a similaridade regular tem maior descrescimento na distribuição do que a similaridade estrutural.
+
+# Exercício 4
+
+
+# Exercício 5
+Consideraremos neste caso os pares de vértices $(400, 434)$ e  $(675, 615)$ da rede de ratos. Para obter o primeiro tempo de passagem médio de $i$ para $j$, consideraremos que a probabilidade de ir de um vértice para o outro é $1/k_i$, sendo $i$ o vértice de saída e $k_i$ seu grau. Simularemos $B = 1000$ caminhos do vértice $i$ ao $j$ e armazenaremos o tamanho de cada caminho realizado. Ao final, calcularemos o caminho/tempo médio de chegar ao vértice $j$ partindo do vértice $i$. Depois, repetiremos o processo de $j$ para $i$. A tabela abaixo resume os resultados:
+```{r}
+# funcao de atualizacao da cadeia
+F_atual <- function(i, u, P, S){
+  # indexando a matriz de transicao
+  idx_trans <- which(S == i)
+  
+  # probabiliddes atuais
+  p_vet <- P[idx_trans, ]
+  
+  sample(S, size = 1, prob = p_vet)
+}
+
+det_P_S <- function(adj){
+  S <- 1:nrow(adj)
+  P <- apply(as.matrix(adj), MARGIN = 1, function(x) x/sum(x))
+  return(list("S" = S, "P" = t(P)))
+}
+
+# usando apenas a rede de ratos
+ratos_P_S <- det_P_S(ratos_adj)
+
+# tempo esperado de ir de um vertice i para outro j
+tempo_esperado <- function(n, i, j, P, S){
+  tempo <- numeric(n)
+  for(k in 1:n){
+  estado_atual <- i
+  while(estado_atual != j){
+    u <- runif(1)
+    estado_atual <- F_atual(estado_atual, u, P, S)
+    tempo[k] <- tempo[k] + 1
+  }
+  }
+  return(mean(tempo))
+}
+
+# pegando 2 pares de vértices para cada rede
+# ratos
+set.seed(1250)
+i_ratos <- c(400, 675)
+j_ratos <- numeric(2)
+j_ratos[1] <- sample(ratos_P_S$S, 1, prob = ratos_P_S$P[i_ratos[1], ])
+j_ratos[2] <- sample(ratos_P_S$S, 1, prob = ratos_P_S$P[i_ratos[2], ])
+```
+```{r}
+#| cache: true 
+B <- 1000
+tempos_i_j_ratos <- map2_dbl(i_ratos, j_ratos, function(x, y){
+  tempo_esperado(B, x, y, ratos_P_S$P, ratos_P_S$S)
+})
+```
+```{r}
+#| cache: true 
+tempos_j_i_ratos <- map2_dbl(j_ratos, i_ratos, function(x, y){
+  tempo_esperado(B, x, y, ratos_P_S$P, ratos_P_S$S)
+})
+```
+```{r}
+data.frame("Vértice i" = i_ratos,
+           "Vértice j" = j_ratos,
+           "MFPT(i,j)" = tempos_i_j_ratos,
+           "MFPT(j,i)" = tempos_j_i_ratos) |>
+  knitr::kable(format = "latex",
+               booktabs = TRUE,
+               escape = FALSE,
+               caption = "MFPT(i,j) e MFPT(j, i) para dois pares de vértices distintos") |>
+  kableExtra::kable_styling(full_width = FALSE,
+                            latex_options = "hold_position")
+
+```
+Vemos que $MFPT(i,j) \neq MFPT(j, i)$ neste exemplo da rede de ratos. De fato, essa desigualdade é esperada. Em um exemplo em que $i$ e $j$ compartilham apenas um vizinho, porém o número de vizinhos de $i$ é menor que o de $j$, é esperado que, caso não se passe para o vizinho compartilhado em um primeiro passo, o processo demorará muito mais para voltar a $j$ do que voltar para $i$. Neste caso, visualiza-se isso pelo número médio de passos de $j$ para $i$ em comparação ao de $i$ para $j$
+
+
