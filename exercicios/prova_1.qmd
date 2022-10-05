@@ -312,16 +312,16 @@ plot_pairplot(medidas_db_lista$coautor)
 ## Item (b)
 
 -   Rede de conexão de fibras do cortex de ratos
-```{r fig.width = 8, fig.height = 6, warning = FALSE}
+```{r fig.width = 6, fig.height = 4, warning = FALSE}
 plot_corr(medidas_db_lista$cortex)
 ```
 -   Rede de emails mandados entre funcionários da empresa Enron
-```{r fig.width = 8, fig.height = 6, warning = FALSE}
+```{r fig.width = 6, fig.height = 4, warning = FALSE}
 plot_corr(medidas_db_lista$enron)
 ```
 
 -   Rede de co-autoria de artigos
-```{r fig.width = 8, fig.height = 6, warning = FALSE}
+```{r fig.width = 6, fig.height = 4, warning = FALSE}
 plot_corr(medidas_db_lista$coautor)
 ```
 
@@ -340,7 +340,7 @@ enron_comun$Louvain |>
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 ```
-Tomando a comunidade 3, que possui um tamanho grande, podemos tomar o subgrafo correspondente a essa comunidade e computar as medidas de centralidade locais e compará-las as medidas globais:
+Visualiza-se que as comunidades 1,3,4 e 5 tem mais que 20 vértices membros. Assim, tomando a comunidade 3, que possui um tamanho grande, podemos tomar o subgrafo correspondente a essa comunidade e computar as medidas de centralidade locais como dada pela Tabela 5:
 ```{r}
 # id do grupo
 id_vertices <- enron_comun$Louvain |>
@@ -357,6 +357,8 @@ medidas_subgrafo_3 |>
   rename(grau_1 = "grau(1)") |>
   arrange(desc(grau_1)) |>
   rename("grau(1)" = "grau_1") |>
+  mutate(closeness = round(closeness, 3),
+         betweenness = round(betweenness, 3)) |>
   slice(1:10) |>
   knitr::kable(format = "latex",
                booktabs = TRUE,
@@ -365,12 +367,14 @@ medidas_subgrafo_3 |>
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 ``` 
-
+Pela Tabela 5, destaca-se o vértice 75 como o mais central na comunidade 3, tendo maiores valores de grau, closeness e betweenness. Já, para a centralidade global, podemos observar os top 10 vértices mais centrais de forma geral pela Tabela 6:
 ```{r}
 medidas_db_lista$enron |>
   rename(grau_1 = "grau(1)") |>
   arrange(desc(grau_1)) |>
   rename("grau(1)" = "grau_1") |>
+  mutate(closeness = round(closeness, 3),
+         betweenness = round(betweenness, 3)) |>
   slice(1:10) |>
   knitr::kable(format = "latex",
                booktabs = TRUE,
@@ -379,9 +383,105 @@ medidas_db_lista$enron |>
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 ```
-
+Vemos que o vértice 75 nem sequer consta entre os 10 vértices mais globalmente centrais. De fato, outro vértices mais relevantes para a comunidade 3 como o 47, 9, 13 e 32 também não  aparecem entre os top 10 vértices mais centrais. Ou seja, pode-se afirmar que existem vértices altamente relevantes dentro da comunidade de interesse sem um grande destaque global.
 
 # Exercício 3
+```{r}
+set.seed(7)
+# algoritmo para realizar o experimento
+correspond <- function(adj_obj){
+  adj_obj <- (adj_obj + 0)
+  # obtendo os pares de vertices que tem aresta
+  arestas <- which(adj_obj == 1, arr.ind = TRUE)
+  
+  # removendo repeticoes
+  arestas <- arestas[arestas[, 1] < arestas[, 2], ]
+  
+  # obtendo a string de cada aresta
+  arestas_str <- apply(arestas, 1, function(x){paste0("[", x[1],",",x[2], "]")})
+  
+  # amostrando 30% das arestas para zerá-las
+  arestas_rm <- sample(arestas_str, 0.3*nrow(arestas), replace = FALSE)
+
+  # transformando cada par em um numerico e obtendo sua comutacao
+  indices_mat <- arestas_rm |> map_dfr(function(x){
+    numbers <- regmatches(x, gregexpr("[[:digit:]]+", x))
+    numbers <- as.numeric(unlist(numbers))
+    comute_numb <- c(numbers[2], numbers[1])
+    return(list("idx_1" = c(numbers[1], comute_numb[1]),
+                "idx_2" = c(numbers[2], comute_numb[2])))
+  }) |>
+    as.matrix()
+  
+  # removendo arestas em nova matriz de adjacencia
+  new_adj <- (adj_obj + 0)
+ for(i in 1:nrow(indices_mat)){
+   new_adj[indices_mat[i, 1], indices_mat[i, 2]] = 0
+ }
+  
+  # indices de quem nao tem aresta
+  idx_n_conex <- which(new_adj == 0, arr.ind = TRUE)
+  # sem repeticoes novamente
+  idx_n_conex <- idx_n_conex[idx_n_conex[, 1] < idx_n_conex[, 2], ]
+  
+  # matriz de similaridade para nova matriz de adjcencia
+  dice_new <- new_adj |>  
+    graph_from_adjacency_matrix(mode = "undirected") |>
+    similarity.dice(mode = "all")
+  
+  # coletando para cada indice o valor da similaridade
+  val_simil <- numeric(nrow(idx_n_conex))
+  
+  for(i in 1:nrow(idx_n_conex)){
+    val_simil[i] <- dice_new[idx_n_conex[i, 1], idx_n_conex[i, 2]]
+  }
+  
+  # obtendo a string de cada
+  idx_str <- apply(idx_n_conex, 1, function(x){paste0("[", x[1],",",x[2], "]")})
+  
+  # ordenando em data.frame e selecionando apenas os 30% mais similares
+  # numero de observacoes que compoe 30% das observacoes
+  qtd_30 <- ceiling((0.3*nrow(idx_n_conex)))
+  
+  # ordenando com relacao a similaridade e 
+  arestas_comp <- data.frame(aresta = idx_str,
+             similaridade = val_simil) |>
+    arrange(desc(similaridade)) |>
+    slice(1:qtd_30) |>
+    pull(aresta)
+  
+  # retornando agora os valores da matriz original
+  indices_comp <- arestas_comp |> map_dfr(function(x){
+    numbers <- regmatches(x, gregexpr("[[:digit:]]+", x))
+    numbers <- as.numeric(unlist(numbers))
+    return(list("idx_1" = c(numbers[1]),
+                "idx_2" = c(numbers[2])))
+  })
+  
+  correspondencia <- map2_dbl(.x = pull(indices_comp, idx_1),
+                              .y = pull(indices_comp, idx_2),
+                              function(x, y){
+    adj_obj[x, y] + 0
+  }) |> mean()
+  
+ return(correspondencia)
+}
+
+# repetindo a correspondencia media
+correspond_media <- function(adj_obj, n = 100){
+  correspond_vec <- numeric(n)
+  for(i in 1:n){
+  correspond_vec[i] <- correspond(adj_obj)
+  }
+  return(mean(correspond_vec))
+}
+```
+```{r}
+#| cache: true
+coauthor_correspond <- correspond_media(coauthor_dados)
+cortex_correspond <- correspond_media(cortex_adj)
+enron_correspond <- correspond_media(enron_adj)
+```
 
 
 # Exercício 4
