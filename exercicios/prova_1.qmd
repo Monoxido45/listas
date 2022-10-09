@@ -7,6 +7,7 @@ format:
     toc: true
     documentclass: scrartcl
     highlight-style: github
+    fig-pos: 'H'
 editor: source
 lang: pt
 ---
@@ -19,15 +20,18 @@ knitr::opts_chunk$set(warning = FALSE, echo = FALSE, size = "scriptsize")
 #| warning: false
 # pacotes sendo usados
 library(igraph)
+library(igraphdata)
 library(tidyverse)
 library(Matrix)
 library(knitr)
 library(scales)
 library(GGally)
 library(ggcorrplot)
+library(reticulate)
 ```
 
 # Exercício 1
+
 Para esse exercício utilizamos as redes de conexão entre as fibras do cerebro de ratos [bn-mouse_visual-cortex_2](https://networkrepository.com/bn-mouse-visual-cortex-2.php), rede de co-autoria de artigos da área de redes complexas [ca-netscience](https://networkrepository.com/ca-netscience.php) e a rede de emails mandados entre funcionários da empresa de energia Enron que deixou de existir em 2007 [email-enron-only](https://networkrepository.com/email-enron-only.php).
 
 ```{r}
@@ -64,7 +68,9 @@ coauthor_dados <- readMM("dados/ca-netscience.mtx")
 
 coauthor_graph <- coauthor_dados |> graph_from_adjacency_matrix(mode = "undirected")
 ```
+
 Selecionada essas redes utilizamos como métodos de detecção de comunidades o método de Louven, Girvan-Newman e propagação de rótulos.
+
 ```{r}
 set.seed(69)
 community_detection <- function(igraph_obj){
@@ -83,8 +89,13 @@ enron_comun <- enron_graph |> community_detection()
 ```
 
 ## Item (a)
+
 Selecionamos a rede de coautoria para visualização de suas respectivas comunidades estimadas em cada método como pode ser visualizado pela Figura abaixo:
+
 ```{r fig.width = 10, fig.height = 10}
+#| label: fig-comunidades-coautoria
+#| fig-cap: Comunidades detectadas para a rede de co-autoria para cada método
+
 set.seed(666)
 lay <- layout_nicely(coauthor_graph)
 
@@ -117,9 +128,10 @@ plot(coauthor_comun$`Label Prop`, coauthor_graph,
 
 ```
 
-
 ## Item (b)
+
 A tabela a seguir sumariza o número de comunidades encontrados para cada rede (nas linhas) por cada método (nas colunas):
+
 ```{r}
 data.frame("Redes" = c("Rede do cortex dos ratos",
                        "Rede de emails",
@@ -144,8 +156,11 @@ data.frame("Redes" = c("Rede do cortex dos ratos",
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 ```
+
 ## Item (c)
+
 A seguir, assim como no item (b), construimos uma tabela com os valores calculados de modularidade de cada método (nas colunas) para cada rede (nas linhas).
+
 ```{r}
 data.frame("Redes" = c("Rede do cortex dos ratos",
                        "Rede de emails",
@@ -170,10 +185,13 @@ data.frame("Redes" = c("Rede do cortex dos ratos",
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 ```
+
 Conforme visto em aula, a modularidade tende a ser maior em redes maiores. Ou seja, não sabemos se a modularidade da rede de co-autoria, com 379 vértices, é maior que a rede de ratos, com 193 vértices, por estar melhor separada ou por simplesmente ser uma rede maior.
 
 ## Item (d)
+
 Para cada rede utilizada, podemos calcular a similaridade entre as partições encontradas por cada algoritmo através do NMI. Assim, computando o NMI entre os diferentes métodos de detecção de comunidades obtemos os resultados mostrados pela Tabela abaixo:
+
 ```{r}
 library(aricode)
 
@@ -208,9 +226,11 @@ knitr::kable(format = "latex",
                             latex_options = "hold_position")
 
 ```
+
 Nota-se primeiramente que para a rede de emails, o valor do NMI calculado na comparação entre os métodos Girvan-Newman e Louvain versus a propagação de rótulos é razoavelmente baixo. Isso pode se dever ao fato de que no método de propagação de rótulos, o número resultante de comunidades é pequeno comparado aos outros dois métodos. Já, para a rede de co-autoria, esperavamos que o valor do NMI fosse maior nessas mesmas comparações devido à quantidade grande de partições obtidas pela propgação de rótulo, mas não foi isso o observado, vide os valores modestos de NMI sumarizados na tabela.
 
 # Exercício 2
+
 ```{r}
 # grau hierarquico de segundo grau
 h_degree <- function(adj_matrix){
@@ -293,40 +313,90 @@ plot_pairplot <- function(medidas_db){
         lower = list(continuous = wrap("points", colour = "dodgerblue3")))
 }
 ```
+
 ## Item (a)
-A seguir, podemos visualizar o scatter-plot entre cada par de medida para cada rede a seguir:
--   Rede de conexão de fibras do cortex de ratos
+
+A seguir, podemos visualizar o scatter-plot entre cada par de medida para cada rede a seguir: - Rede de conexão de fibras do cortex de ratos
+
 ```{r fig.width = 8, fig.height = 6, warning = FALSE}
+#| label: fig-scatter-plots-cortex
+#| fig-cap: Gráficos de dispersão das medidas de centralidade para a rede de cortex de ratos
 plot_pairplot(medidas_db_lista$cortex)
 ```
+
 -   Rede de emails mandados entre funcionários da empresa Enron
+
 ```{r fig.width = 8, fig.height = 6, warning = FALSE}
+#| label: fig-scatter-plots-enron
+#| fig-cap: Gráficos de dispersão das medidas de centralidade para a rede de emails
 plot_pairplot(medidas_db_lista$enron)
 ```
 
 -   Rede de co-autoria de artigos
+
 ```{r fig.width = 8, fig.height = 6, warning = FALSE}
+#| label: fig-scatter-plots-coauthor
+#| fig-cap: Gráficos de dispersão das medidas de centralidade para a rede de coautoria
 plot_pairplot(medidas_db_lista$coautor)
 ```
 
 ## Item (b)
 
 -   Rede de conexão de fibras do cortex de ratos
+
 ```{r fig.width = 6, fig.height = 4, warning = FALSE}
+#| label: fig-corr-matrix-cortex
+#| fig-cap: Matriz de correlação das medidas de centralidade para a rede de cortex de ratos
 plot_corr(medidas_db_lista$cortex)
 ```
+
+Nota-se pela Figura \ref{fig-corr-matrix-cortex} uma alta correlação entre o betweenness e o grau hierárquico de grau 1, muito próxima de 1. Isso provavelmente se deve ao fato de que, nesse caso, vértices com alto grau tem um número elevado de vizinhos que só se ligam a ele. Desse modo, ao remover esses vértices da rede, torna-se impossível acessar esses outros nós de grau menor. De fato, esses nós menores todos possuem em torno de grau 1 ou 2, como se pode visualizar pelos gráficos de dispersão e densidade associadas ao grau hierárquico de grau 1 observados na Figura \ref{fig-scatter-plots-cortex}. Em uma interpretação de comunidades, pode-se dizer que esses nós de graus maiores de cada comunidade, são aqueles também conectam sua comunidade a outras.
+
+Também visualiza-se na Figura que o grau hierárquico de grau 2 possui baixa correlação com o grau hierárquico de grau 1 e o betweenness. Isso ainda se relaciona com a discussão acima, visto que tanto os nós ligados a outros vértices com alto grau e betweenness quanto estes mesmos vértices vão se conectar em segundo grau com nós dotados de vizinhanças grandes. Isso pode também ser observado nos gráficos de dispersão e densidade associada ao grau hierárquico de ordem 2, que em geral, tem grande concentração de valores grandes. Essas constatações da matriz de correlação podem ser ilustradas pelo formato da rede do cortex visualizada por meio da Figura \ref{fig-rede-cortex}
+
+```{r fig.width = 10, fig.height = 10}
+#| label: fig-rede-cortex
+#| fig-cap: Rede do cortex visual de rato
+set.seed(666)
+lay <- layout_nicely(cortex_graph)
+
+plot(cortex_graph,
+     layout = lay,
+     layout.par = lay_margin,
+     vertex.size = 1/5*degree(cortex_graph),
+     vertex.color = "green",
+     vertex.label = NA,
+     main = "Rede do cortex visual de rato")
+```
+
 -   Rede de emails mandados entre funcionários da empresa Enron
+
 ```{r fig.width = 6, fig.height = 4, warning = FALSE}
+#| label: fig-corr-matrix-enron
+#| fig-cap: Matriz de correlação das medidas de centralidade para a rede de emails
 plot_corr(medidas_db_lista$enron)
 ```
 
+Primeiramente, constata-se pela Figura \ref{fig-corr-matrix-enron} acima que todas as medidas de centralidade possuem correlação alta, acima de 0.6, o que pode estar relacionado a rede ter um número elevado de arestas e cada vértice estar bem conectado nesta. Isso é ilustrado pelos gráficos de dispersão e densidades do grau de ordem 1 presentes na Figura \ref{fig-scatter-plots-enron}, em que se observa uma boa dispersão dos graus em maiores valores, com maiores densidades no intervalo de 0 a 10. Destaca-se também a alta correlação entre o grau hierárquico de ordem 2 e o closeness que podem estar relacionados ao fato de que, quando se tem um grau hierárquico de ordem 2 alto, também teremos um tamanho médio de caminhos menores, ou seja um alto closeness.
+
+Isso implica que muitos nós nessa rede podem ser alcançados em até dois passos, o que faz sentido por ser uma rede de emails instucional, havendo uma noção de hierarquia associada. Já, para nós mais periféricos, em que não temos muitas conexões de grau 2, é natural que o closeness seja menor, visto que serão necessários mais passos para chegar nesse vértice a partir de todos os outros. No contexto de emails, pode-se dizer que tais usuários fazem parte de grupos mais separados na empresa.
+
 -   Rede de co-autoria de artigos
+
 ```{r fig.width = 6, fig.height = 4, warning = FALSE}
+#| label: fig-corr-matrix-coauthor
+#| fig-cap: Matriz de correlação das medidas de centralidade para a rede de coautoria
 plot_corr(medidas_db_lista$coautor)
 ```
 
+Pela Figura \ref{fig-corr-matrix-coauthor}, nota-se que tanto o grau hierárquico de ordem 1 tem uma alta correlação com o betweenness quanto também o grau hierárquico de ordem 2 tem alta correlação com o closeness, enquanto o restante dos pares de medidas possuem correlações razoavelmente baixas. Nota-se pela Figura \ref{fig-scatter-plots-coauthor} que para essa rede, a distribuição do grau hierárquico de ordem 1 tende a ter maiores concentrações em menores valores, com um pico em sua densidade para valores muito menores que 10. Ou seja, ao contrário da rede de emails, cada vértice tende a ter um número mais seleto de vizinhos. Nesse caso da rede de coautoria, a relação positiva entre grau de ordem 1 e betweenness pode estar relacionada ao fato de que, vértices com uma vizinhança grande representam autores que tendem a trabalhar junto com diversos outros autores, sejam eles autores de outros enfoques, autores com mesmo enfoque e possivelmente orientandos que por sua vez co-autoram com poucos ou nenhum outro pesquisador. Assim, se removermos os "orientadores", muito provavelmente os "orientandos" e outros pesquisadores perdem qualquer relação com vários outros pesquisadores presentes na rede. Nesse sentido, esses casos remetem ao que se visualizou na rede de Córtex visual dos ratos, porém em um caso menos extremo.
+
+Por sua vez, a alta correlação entre o closeness e o grau de ordem 2 se deve ao fato de que, pesquisadores influentes que co-autoram com outros pesquisadores também influentes tendem a não se distanciar muito de todos os demais pesquisadores, ou seja, são facilmente acessados por qualquer outro vértice da rede. Já, pesquisadores com uma vizinhança de grau 2 menor coautoram com outros pesquisadores que possuem vizinhanças pequenas, ou seja, seriam pesquisadores de enfoques mais específicos e isolados, e portanto, estariam mais distante dos demais. Isso reflete o comportamento hierarquico observado na rede emails, porém de forma menos rígida e sem refletir uma noção de superioridade, e sim uma organização interna da área de pesquisa.
+
 ## Item (c)
-Tomando a rede de emails e as comunidades obitdas pelo método de Louvain, podemos realizar um ranqueamento dos vértices para as maiores comunidades. Primeiramente, a tabela abaixo nos dá o tamanho de cada comunidade:
+
+Tomando a rede de emails e as comunidades obtidas pelo método de Louvain, podemos realizar um ranqueamento dos vértices para as maiores comunidades. Primeiramente, a tabela abaixo nos dá o tamanho de cada comunidade:
+
 ```{r}
 enron_comun$Louvain |> 
   sizes() |> 
@@ -340,7 +410,9 @@ enron_comun$Louvain |>
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 ```
+
 Visualiza-se que as comunidades 1,3,4 e 5 tem mais que 20 vértices membros. Assim, tomando a comunidade 3, que possui um tamanho grande, podemos tomar o subgrafo correspondente a essa comunidade e computar as medidas de centralidade locais como dada pela Tabela 5:
+
 ```{r}
 # id do grupo
 id_vertices <- enron_comun$Louvain |>
@@ -366,8 +438,10 @@ medidas_subgrafo_3 |>
                caption = "Top 10 vértices com maior centralidade local para o subgrafo da comunidade 3") |>
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
-``` 
+```
+
 Pela Tabela 5, destaca-se o vértice 75 como o mais central na comunidade 3, tendo maiores valores de grau, closeness e betweenness. Já, para a centralidade global, podemos observar os top 10 vértices mais centrais de forma geral pela Tabela 6:
+
 ```{r}
 medidas_db_lista$enron |>
   rename(grau_1 = "grau(1)") |>
@@ -383,9 +457,15 @@ medidas_db_lista$enron |>
   kableExtra::kable_styling(full_width = FALSE,
                             latex_options = "hold_position")
 ```
-Vemos que o vértice 75 nem sequer consta entre os 10 vértices mais globalmente centrais. De fato, outro vértices mais relevantes para a comunidade 3 como o 47, 9, 13 e 32 também não  aparecem entre os top 10 vértices mais centrais. Ou seja, pode-se afirmar que existem vértices altamente relevantes dentro da comunidade de interesse sem um grande destaque global.
+
+Vemos que o vértice 75 nem sequer consta entre os 10 vértices mais globalmente centrais. De fato, outro vértices mais relevantes para a comunidade 3 como o 47, 9, 13 e 32 também não aparecem entre os top 10 vértices mais centrais. Ou seja, pode-se afirmar que existem vértices altamente relevantes dentro da comunidade de interesse sem um grande destaque global.
 
 # Exercício 3
+
+## Item (a)
+
+A seguir, sumarizamos em uma tabela a taxa de correspondência para cada rede tomando $B = 100$ como o número de repetições do processo descrito no enunciado:
+
 ```{r}
 set.seed(7)
 # algoritmo para realizar o experimento
@@ -442,7 +522,6 @@ correspond <- function(adj_obj){
   # ordenando em data.frame e selecionando apenas os 30% mais similares
   # numero de observacoes que compoe 30% das observacoes
   qtd_30 <- ceiling((0.3*nrow(idx_n_conex)))
-  
   # ordenando com relacao a similaridade e 
   arestas_comp <- data.frame(aresta = idx_str,
              similaridade = val_simil) |>
@@ -476,6 +555,7 @@ correspond_media <- function(adj_obj, n = 100){
   return(mean(correspond_vec))
 }
 ```
+
 ```{r}
 #| cache: true
 coauthor_correspond <- correspond_media(coauthor_dados)
@@ -483,8 +563,102 @@ cortex_correspond <- correspond_media(cortex_adj)
 enron_correspond <- correspond_media(enron_adj)
 ```
 
+```{r}
+data.frame(redes = c("Rede de co-autores", "Rede de cortex do rato",
+                     "Rede de emails"),
+           correspondencia = c(coauthor_correspond, cortex_correspond,
+                               enron_correspond)) |>
+  knitr::kable(format = "latex",
+               booktabs = TRUE,
+               escape = FALSE,
+               col.names = c("Redes",
+                             "Correspondência"),
+               caption = "Valor médio da taxa de correspondência de cada Rede selecionada") |>
+  kableExtra::kable_styling(full_width = FALSE,
+                            latex_options = "hold_position")
+```
+
+## Item (b)
+
+Antes de pensar em como adaptar a ideia de previsão de links para o contexto de redes complexas com comunidades, convém identificar qual seria a sua real serventia nesse tipo de contexto. Já havendo uma noção bem estabelecida de quais vértices fariam parte de quais comunidades, uma pergunta natural seria se essas comunidades são entidades separadas, isto é, se podem ser avaliadas individualmente. Em um contexto assim, a previsão de link poderia ser utilizada para avaliar a real pertinência das arestas que se situam entre comunidades. Assim, caso haja indícios de que essas arestas podem ser removidas, significa que estaríamos lidando com entidades de naturezas distintas.
+
+Com essa ideia em mente, uma proposta de adaptação do método que seria mais eficiente e que levaria em consideração a existência das comunidades seria realizar a previsão de links apenas para arestas que figuram entre comunidades. Desse modo, reduziríamos consideravelmente o escopo do problema, sem com isso serem necessárias grandes alterações na metodologia.
 
 # Exercício 4
 
+## Item (a)
 
+Pode-se dizer que a afirmação erra ao equivaler a abordagem de particionamento de redes com a de detecção de comunidades. Apesar de o método de particionamento da rede poder ser usado de forma a auxiliar ou aprimorar o processo de identificação de comunidades, ele não fornece critérios adequados para estabelecer se as partições estão fornecendo potenciais comunidades.
 
+Como exemplo dessa falha, apresentamos a Figura abaixo. Os pontos em preto representam vértices, as linhas azuis são arestas e as linhas tracejadas são duas possíveis partições ótimas. Podemos observar que a partição em verde geraria dois grupos (de cima e de baixo) que apresentam potencial de serem comunidades. Porém, a partição gerada em vermelho - que oferece o mesmo *cut size* ótimo da partição em verde - fornece um grupo (à esquerda) que passa a impressão de possuir duas comunidades em seu interior. Afinal, há apenas uma aresta no meio ligando duas regiões bem conectadas.
+
+![Exemplo de rede.](/home/kuben/estatistica_UFSCAR/Doutorado/redes_complexas/listas/exercicios/grafo_bissec.jpg)
+
+## Item (b)
+
+Ilustra-se a melhor bi-secção por kernighan-lin da rede Zachary's karate club pela Figura \ref{fig-kernighan-lin-zachary}.
+
+```{r}
+# importando zachary karate club
+data(karate)
+
+# layout unico
+set.seed(125)
+lay <- layout_nicely(karate)
+```
+
+```{python}
+# separando pelo kernighan lin no python
+import networkx as netx
+from networkx.algorithms import community
+import igraph as ig
+
+karate = netx.karate_club_graph()
+# obtendo as comunidades
+bisec = community.kernighan_lin_bisection(karate, weight = None, seed = 69)
+```
+
+```{r}
+# mandando o objeto da bisecção do python para o R
+bisecao <- py$bisec
+bisec_2 <- bisecao[[2]] |> as.character()
+
+# transformando em um vetor de fatores
+comun_2 <- regmatches(bisec_2, gregexpr("[[:digit:]]+", bisec_2)) |>
+  unlist() |>
+  as.numeric()
+comun_2 <- comun_2 + 1
+
+# fatores
+comun_factor <- numeric(length(V(karate)))
+comun_factor[comun_2] <- 1
+comun_factor <- as.factor(comun_factor)
+```
+
+```{r}
+# criando um objeto communities com essa nova particao
+# usando o metodo de louvain e sobrescrevendo
+particao <- cluster_louvain(karate)
+particao$membership <- comun_factor
+```
+
+```{r fig.width = 6, fig.height = 5}
+#| label: fig-kernighan-lin-zachary
+#| fig-cap: Bi-secção obtida por Kenighan-Lin
+plot(particao, karate,
+     layout = lay,
+     main = "Partição por Kernighan-Lin da rede Zachary's karate club")
+```
+
+Para comparar com a rede original, visualiza-se a seguir a Figura \ref{fig-particao-original}.
+
+```{r fig.width = 6, fig.height = 5}
+#| label: fig-particao-original
+#| fig-cap: Rede original do Zachary's karate club
+# grafico original
+plot(karate,
+     layout = lay,
+     main = "Rede original Zachary's karate club")
+```
+
+Nota-se em geral, pelas duas figuras, que o método de Kernighan-Lin nos da uma bisecção praticamente idêntica aos dois grupos originais, tendo como única diferença o vértice 10, que está no grupo amarelo ao invés do azul na bisecção. Ou seja, neste caso, podemos dizer que o método da bisecção teve um bom funcionamento, praticamente nos retornando os grupos originais
