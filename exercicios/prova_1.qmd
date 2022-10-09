@@ -316,7 +316,9 @@ plot_pairplot <- function(medidas_db){
 
 ## Item (a)
 
-A seguir, podemos visualizar o scatter-plot entre cada par de medida para cada rede a seguir: - Rede de conexão de fibras do cortex de ratos
+A seguir, podemos visualizar o scatter-plot entre cada par de medida para cada rede a seguir: 
+
+-  Rede de conexão de fibras do cortex de ratos
 
 ```{r fig.width = 8, fig.height = 6, warning = FALSE}
 #| label: fig-scatter-plots-cortex
@@ -324,7 +326,7 @@ A seguir, podemos visualizar o scatter-plot entre cada par de medida para cada r
 plot_pairplot(medidas_db_lista$cortex)
 ```
 
--   Rede de emails mandados entre funcionários da empresa Enron
+-  Rede de emails mandados entre funcionários da empresa Enron
 
 ```{r fig.width = 8, fig.height = 6, warning = FALSE}
 #| label: fig-scatter-plots-enron
@@ -332,7 +334,7 @@ plot_pairplot(medidas_db_lista$cortex)
 plot_pairplot(medidas_db_lista$enron)
 ```
 
--   Rede de co-autoria de artigos
+-  Rede de co-autoria de artigos
 
 ```{r fig.width = 8, fig.height = 6, warning = FALSE}
 #| label: fig-scatter-plots-coauthor
@@ -342,7 +344,7 @@ plot_pairplot(medidas_db_lista$coautor)
 
 ## Item (b)
 
--   Rede de conexão de fibras do cortex de ratos
+-  Rede de conexão de fibras do cortex de ratos
 
 ```{r fig.width = 6, fig.height = 4, warning = FALSE}
 #| label: fig-corr-matrix-cortex
@@ -350,9 +352,9 @@ plot_pairplot(medidas_db_lista$coautor)
 plot_corr(medidas_db_lista$cortex)
 ```
 
-Nota-se pela Figura \ref{fig-corr-matrix-cortex} uma alta correlação entre o betweenness e o grau hierárquico de grau 1, muito próxima de 1. Isso provavelmente se deve ao fato de que, nesse caso, vértices com alto grau tem um número elevado de vizinhos que só se ligam a ele. Desse modo, ao remover esses vértices da rede, torna-se impossível acessar esses outros nós de grau menor. De fato, esses nós menores todos possuem em torno de grau 1 ou 2, como se pode visualizar pelos gráficos de dispersão e densidade associadas ao grau hierárquico de grau 1 observados na Figura \ref{fig-scatter-plots-cortex}. Em uma interpretação de comunidades, pode-se dizer que esses nós de graus maiores de cada comunidade, são aqueles também conectam sua comunidade a outras.
+Nota-se pela Figura \ref{fig-corr-matrix-cortex} uma alta correlação entre o betweenness e o grau hierárquico de grau 1, muito próxima de 1. Isso provavelmente se deve ao fato de que, nesse caso, vértices com alto grau tem um número elevado de vizinhos que só se ligam a ele. Desse modo, ao remover esses vértices da rede, torna-se impossível acessar esses outros nós de grau menor. De fato, esses nós menores todos possuem em torno de grau 1 ou 2, como se pode visualizar pelos gráficos de dispersão e densidade associadas ao grau hierárquico de grau 1 observados na Figura \ref{fig-scatter-plots-cortex}. Em uma interpretação de comunidades, pode-se dizer que esses nós de graus maiores de cada comunidade, são aqueles que também conectam sua comunidade a outras.
 
-Também visualiza-se na Figura que o grau hierárquico de grau 2 possui baixa correlação com o grau hierárquico de grau 1 e o betweenness. Isso ainda se relaciona com a discussão acima, visto que tanto os nós ligados a outros vértices com alto grau e betweenness quanto estes mesmos vértices vão se conectar em segundo grau com nós dotados de vizinhanças grandes. Isso pode também ser observado nos gráficos de dispersão e densidade associada ao grau hierárquico de ordem 2, que em geral, tem grande concentração de valores grandes. Essas constatações da matriz de correlação podem ser ilustradas pelo formato da rede do cortex visualizada por meio da Figura \ref{fig-rede-cortex}
+Também visualiza-se na Figura \ref{fig-corr-matrix-cortex} que o grau hierárquico de grau 2 possui baixa correlação com o grau hierárquico de grau 1 e o betweenness. Isso ainda se relaciona com a discussão acima, visto que tanto os nós ligados a outros vértices com alto grau e betweenness quanto estes mesmos vértices vão se conectar em segundo grau com nós dotados de vizinhanças grandes. Isso pode também ser observado nos gráficos de dispersão e densidade associada ao grau hierárquico de ordem 2, que em geral, tem grande concentração em valores grandes. Essas constatações da matriz de correlação podem ser ilustradas pelo formato da rede do cortex visualizada por meio da Figura \ref{fig-rede-cortex}
 
 ```{r fig.width = 10, fig.height = 10}
 #| label: fig-rede-cortex
@@ -389,7 +391,7 @@ Isso implica que muitos nós nessa rede podem ser alcançados em até dois passo
 plot_corr(medidas_db_lista$coautor)
 ```
 
-Pela Figura \ref{fig-corr-matrix-coauthor}, nota-se que tanto o grau hierárquico de ordem 1 tem uma alta correlação com o betweenness quanto também o grau hierárquico de ordem 2 tem alta correlação com o closeness, enquanto o restante dos pares de medidas possuem correlações razoavelmente baixas. Nota-se pela Figura \ref{fig-scatter-plots-coauthor} que para essa rede, a distribuição do grau hierárquico de ordem 1 tende a ter maiores concentrações em menores valores, com um pico em sua densidade para valores muito menores que 10. Ou seja, ao contrário da rede de emails, cada vértice tende a ter um número mais seleto de vizinhos. Nesse caso da rede de coautoria, a relação positiva entre grau de ordem 1 e betweenness pode estar relacionada ao fato de que, vértices com uma vizinhança grande representam autores que tendem a trabalhar junto com diversos outros autores, sejam eles autores de outros enfoques, autores com mesmo enfoque e possivelmente orientandos que por sua vez co-autoram com poucos ou nenhum outro pesquisador. Assim, se removermos os "orientadores", muito provavelmente os "orientandos" e outros pesquisadores perdem qualquer relação com vários outros pesquisadores presentes na rede. Nesse sentido, esses casos remetem ao que se visualizou na rede de Córtex visual dos ratos, porém em um caso menos extremo.
+Pela Figura \ref{fig-corr-matrix-coauthor}, nota-se que tanto que o grau hierárquico de ordem 1 tem uma alta correlação com o betweenness quanto também o grau hierárquico de ordem 2 tem alta correlação com o closeness, enquanto o restante dos pares de medidas possuem correlações razoavelmente baixas. Nota-se pela Figura \ref{fig-scatter-plots-coauthor} que para essa rede, a distribuição do grau hierárquico de ordem 1 tende a ter maiores concentrações em menores valores, com um pico em sua densidade para valores muito menores que 10. Ou seja, ao contrário da rede de emails, cada vértice tende a ter um número mais seleto de vizinhos. Nesse caso da rede de coautoria, a relação positiva entre grau de ordem 1 e betweenness pode estar relacionada ao fato de que, vértices com uma vizinhança grande representam autores que tendem a trabalhar junto com diversos outros autores, sejam eles autores de outros enfoques, autores com mesmo enfoque e possivelmente orientandos que por sua vez co-autoram com poucos ou nenhum outro pesquisador. Assim, se removermos os "orientadores", muito provavelmente os "orientandos" e outros pesquisadores perdem qualquer relação com vários outros pesquisadores presentes na rede. Nesse sentido, esses casos remetem ao que se visualizou na rede de Córtex visual dos ratos, porém em um caso menos extremo.
 
 Por sua vez, a alta correlação entre o closeness e o grau de ordem 2 se deve ao fato de que, pesquisadores influentes que co-autoram com outros pesquisadores também influentes tendem a não se distanciar muito de todos os demais pesquisadores, ou seja, são facilmente acessados por qualquer outro vértice da rede. Já, pesquisadores com uma vizinhança de grau 2 menor coautoram com outros pesquisadores que possuem vizinhanças pequenas, ou seja, seriam pesquisadores de enfoques mais específicos e isolados, e portanto, estariam mais distante dos demais. Isso reflete o comportamento hierarquico observado na rede emails, porém de forma menos rígida e sem refletir uma noção de superioridade, e sim uma organização interna da área de pesquisa.
 
